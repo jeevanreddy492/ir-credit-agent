@@ -1,0 +1,6 @@
+{"id": "e01", "question": "Why did credit request 12345 fail?", "expect_codes": ["TU-IDM-402"], "expect_action": "RETRY_CREDIT_REQUEST", "expect_bureau": "TRANSUNION", "expect_tools": ["get_credit_request", "get_bureau_status", "get_error_details", "search_knowledge_base"]}
+{"id": "e02", "question": "What happened with request 12346 and should we retry?", "expect_codes": ["EQ-TMO-504", "TU-TMO-504"], "expect_action": "RETRY_CREDIT_REQUEST", "expect_bureau": "ALL", "expect_tools": ["get_credit_request", "get_bureau_status", "get_error_details", "search_knowledge_base"]}
+{"id": "e03", "question": "Credit request 12347 is failing, can you retry it?", "expect_codes": ["EQ-FRZ-301"], "expect_action": null, "expect_bureau": null, "expect_tools": ["get_credit_request", "get_bureau_status", "get_error_details", "search_knowledge_base"]}
+{"id": "e04", "question": "Is request 12348 stuck?", "expect_codes": [], "expect_action": null, "expect_bureau": null, "expect_tools": ["get_credit_request", "get_bureau_status"]}
+{"id": "e05", "question": "Why did request 12349 fail?", "expect_codes": [], "expect_action": null, "expect_bureau": null, "expect_tools": ["get_credit_request", "get_bureau_status"]}
+{"id": "e06", "question": "Why did request 99999 fail?", "expect_codes": [], "expect_action": null, "expect_bureau": null, "expect_tools": ["get_credit_request"]}

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: ir-credit-agent }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: ir-credit-agent } }
+  template:
+    metadata: { labels: { app: ir-credit-agent } }
+    spec:
+      serviceAccountName: ir-credit-agent-sa   # Workload Identity -> GSA with aiplatform.user, cloudsql.client, logging.logWriter, cloudtrace.agent
+      containers:
+        - name: agent
+          image: us-central1-docker.pkg.dev/PROJECT_ID/ir/ir-credit-agent:latest
+          ports: [{ containerPort: 8080 }]
+          envFrom: [{ configMapRef: { name: ir-credit-agent-config } }]
+          env:
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: ir-credit-agent-secrets, key: database_url } }
+            - name: IR_BACKEND_TOKEN
+              valueFrom: { secretKeyRef: { name: ir-credit-agent-secrets, key: ir_backend_token } }
+          readinessProbe: { httpGet: { path: /healthz, port: 8080 }, initialDelaySeconds: 5 }
+          livenessProbe:  { httpGet: { path: /healthz, port: 8080 }, initialDelaySeconds: 15 }
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits:   { cpu: "1", memory: "1Gi" }
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.0
+          args: ["--structured-logs", "--port=5432", "PROJECT_ID:us-central1:ir-agent-db"]
+          securityContext: { runAsNonRoot: true }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: ir-credit-agent }
+spec:
+  type: ClusterIP
+  selector: { app: ir-credit-agent }
+  ports: [{ port: 80, targetPort: 8080 }]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: ir-credit-agent-config }
+data:
+  GOOGLE_CLOUD_PROJECT: "PROJECT_ID"
+  GOOGLE_CLOUD_LOCATION: "us-central1"
+  GOOGLE_GENAI_USE_VERTEXAI: "TRUE"
+  LLM_MODEL: "gemini-2.0-flash"
+  EMBEDDING_MODEL: "text-embedding-005"
+  IR_BACKEND_URL: "http://ir-mock-backend"
+  APP_ENV: "prod"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: ir-credit-agent }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: ir-credit-agent }
+  minReplicas: 2
+  maxReplicas: 8
+  metrics: [{ type: Resource, resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } } }]

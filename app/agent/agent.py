@@ -1,0 +1,1 @@
+from app.agent.investigator import investigator as root_agent

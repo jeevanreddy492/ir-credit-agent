@@ -1,0 +1,23 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment: { POSTGRES_USER: ir, POSTGRES_PASSWORD: ir, POSTGRES_DB: ir_agent }
+    ports: ["5432:5432"]
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgdata:/var/lib/postgresql/data
+  ir-backend:
+    build: { context: ., dockerfile: mock_backend/Dockerfile }
+    ports: ["9000:9000"]
+  agent:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://ir:ir@db:5432/ir_agent
+      IR_BACKEND_URL: http://ir-backend:9000
+    ports: ["8080:8080"]
+    depends_on: [db, ir-backend]
+    volumes:
+      - ~/.config/gcloud:/root/.config/gcloud:ro   # ADC for Vertex when running locally
+volumes:
+  pgdata:
